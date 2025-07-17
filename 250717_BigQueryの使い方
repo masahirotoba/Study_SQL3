@@ -1,0 +1,100 @@
+# BigQuery内にテーブルを作成
+CREATE TABLE `example.example_data` (
+  key1 STRING,
+  value1 INT64,
+  value2 INT64
+);
+
+INSERT INTO `example.example_data` (key1, value1, value2)
+VALUES
+  ('A', 1, 10),
+  ('B', 2, 20),
+  ('C', 3, 30),
+  ('A', 4, 40),
+  ('C', 5, 50),
+  ('D', 6, 60),
+  ('C', 7, 70),
+  ('D', 8, 80);
+
+# まずは全部を出力
+SELECT
+  *
+FROM
+  `example.example_data`;
+
+key1	value1	value2
+A	1	10
+A	4	40
+B	2	20
+C	5	50
+C	3	30
+C	7	70
+D	8	80
+D	6	60
+
+# 合計値を出力
+SELECT
+  key1,
+  value1 + value2 AS `合計値`
+FROM
+  `example.example_data`;
+
+  key1	合計値
+A	11
+A	44
+B	22
+C	55
+C	33
+C	77
+D	88
+D	66
+
+# WHERE句の書き方
+SELECT
+  key1,
+  value1
+FROM
+  `example.example_data`
+WHERE
+  value1 >= 5;
+
+key1	value1
+C	5
+C	7
+D	8
+D	6
+
+# GROUP BY
+SELECT
+  key1,
+  Count(*),
+  SUM(value1)
+FROM
+  `example.example_data`
+GROUP BY
+  key1;
+
+key1	f0_	f1_
+A	2	5
+B	1	2
+C	3	15
+D	2	14
+
+→関数名がわからないので、書かないといけない
+
+# HAVING句
+SELECT
+  key1,
+  Count(*),
+  SUM(value1)
+FROM
+  `example.example_data`
+GROUP BY
+  key1
+HAVING
+  Count(*) >= 2;
+
+key1	f0_	f1_
+A	2	5
+C	3	15
+D	2	14
