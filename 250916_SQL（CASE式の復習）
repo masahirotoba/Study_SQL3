@@ -1,0 +1,63 @@
+# shop2という新規のDBを作成
+CREATE DATABASE shop2;
+
+# mst_usersを作成する
+shop2=# SELECT * FROM mst_users;
+ user_id | register_date | register_device
+---------+---------------+-----------------
+ U001    | 2016-08-26    |               1
+ U002    | 2016-08-26    |               2
+ U003    | 2016-08-27    |               3
+(3 行)
+
+# 間違い
+CASE文の中では、WHEN句同士をカンマで区切らない
+CASE文は「1つの式」として扱われる
+SELECT
+	user_id,
+	register_date,
+	CASE
+		WHEN register_device = 1 THEN 'PC',
+		WHEN register_device = 2 THEN 'SP',
+		WHEN register_device = 3 THEN 'アプリ',
+		ELSE ''
+	END AS device_name
+FROM mst_users
+;
+		
+# 正しいコード
+SELECT
+	user_id,
+	register_date,
+	CASE
+		WHEN register_device = 1 THEN 'PC'
+		WHEN register_device = 2 THEN 'SP'
+		WHEN register_device = 3 THEN 'アプリ'
+		ELSE ''
+	END AS device_name
+FROM mst_users
+;
+
+ user_id | register_date | device_name
+---------+---------------+-------------
+ U001    | 2016-08-26    | PC
+ U002    | 2016-08-26    | SP
+ U003    | 2016-08-27    | アプリ
+(3 行)
+
+# 書き換え
+SELECT
+	user_id,
+	CASE
+		WHEN register_device = 1 THEN '1番のデバイス'
+		ELSE '1番でないデバイス'
+	END AS device_name
+FROM mst_users;
+
+ user_id |    device_name
+---------+-------------------
+ U001    | 1番のデバイス
+ U002    | 1番でないデバイス
+ U003    | 1番でないデバイス
+(3 行)
+
