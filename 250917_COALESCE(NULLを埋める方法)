@@ -1,0 +1,94 @@
+shop2=# SELECT * FROM purchase_log_with_coupon;
+ purchase_id | amount | coupon
+-------------+--------+--------
+ 10001       |   3280 |
+ 10002       |   4650 |    500
+ 10003       |   3870 |
+(3 行)
+
+# CASE式でやろうとしたけど、元のテーブルを参照するのでダメだった
+SELECT
+	purchase_id,
+	amount,
+	CASE
+		WHEN coupon IS NULL THEN 0
+		ELSE coupon
+	END AS coupon,
+	amount - coupon AS discount_amount
+FROM purchase_log_with_coupon;
+
+ purchase_id | amount | coupon | discount_amount
+-------------+--------+--------+-----------------
+ 10001       |   3280 |      0 |
+ 10002       |   4650 |    500 |            4150
+ 10003       |   3870 |      0 |
+(3 行)
+
+# このCASE式ならキレイにできる
+SELECT
+	purchase_id,
+	amount,
+	coupon,
+	amount - coupon AS discount_amount
+FROM(
+	SELECT	
+		purchase_id,
+		amount,
+		CASE
+			WHEN coupon IS NULL THEN 0
+			ELSE coupon
+		END AS coupon
+	FROM purchase_log_with_coupon
+)t;
+
+ purchase_id | amount | coupon | discount_amount
+-------------+--------+--------+-----------------
+ 10001       |   3280 |      0 |            3280
+ 10002       |   4650 |    500 |            4150
+ 10003       |   3870 |      0 |            3870
+(3 行)
+
+# COALESCEの使い方
+SELECT
+	purchase_id,
+	amount,
+	COALESCE(coupon, 0) AS coupon_filled
+FROM purchase_log_with_coupon;
+
+# これならもっとシンプルになる
+SELECT
+	purchase_id,
+	amount,
+	COALESCE(coupon, 0) AS coupon_filled,
+	amount - COALESCE(coupon, 0) AS discount_amount
+FROM purchase_log_with_coupon;
+
+ purchase_id | amount | coupon_filled | discount_amount
+-------------+--------+---------------+-----------------
+ 10001       |   3280 |             0 |            3280
+ 10002       |   4650 |           500 |            4150
+ 10003       |   3870 |             0 |            3870
+(3 行)
+
+# 列を参照したいけどムリかな？
+SELECT
+	purchase_id,
+	amount,
+	COALESCE(coupon, 0) AS coupon_filled,
+	amount - coupon_filled
+FROM purchase_log_with_coupon;
+
+# 理由
+SQLでは同じSELECT句内で、作った別名（エイリアス）を参照できません。
+SQLの処理順序上、SELECT句内では前に定義した別名を使えません。
+
+COALESCEは**「コアレス」**と読みます。
+発音
+
+Co-a-lesce = コ・ア・レス
+アクセントは最初の「コ」
+
+意味
+英語で「合体する、融合する」という意味です。
+SQLでの意味
+複数の値を「合体」させて、最初のNULL以外の値を取り出すという機能にちなんで名付けられています。
