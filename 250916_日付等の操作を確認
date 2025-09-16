@@ -1,0 +1,80 @@
+shop2=# SELECT * FROM access_log;
+        stamp        |                       referrer                        |                    url                   
+---------------------+-------------------------------------------------------+--------------------------------------------
+ 2016-08-26 12:02:00 | http://www.other.com/path1/index.php?k1=v1&k2=v2#Ref1 | http://www.example.com/video/detail?id=001
+ 2016-08-26 12:02:01 | http://www.other.net/path1/index.php?k1=v1&k2=v2#Ref1 | http://www.example.com/video#ref
+ 2016-08-26 12:02:01 | https://www.other.com/                                | http://www.example.com/book/detail?id=002(3 行)
+
+SELECT
+    stamp,
+    substring(referrer from 'https?://([^/]*)') AS referrer_host
+FROM access_log;
+
+        stamp        | referrer_host
+---------------------+---------------
+ 2016-08-26 12:02:00 | www.other.com
+ 2016-08-26 12:02:01 | www.other.net
+ 2016-08-26 12:02:01 | www.other.com
+(3 行)
+
+SELECT
+	stamp,
+	url,
+	substring(url from '//[^/]+([^?#]+)') AS path,
+	substring(url from 'id=([^&]*)') AS id
+FROM access_log;
+
+        stamp        |                    url                     |     path      | id
+---------------------+--------------------------------------------+---------------+-----
+ 2016-08-26 12:02:00 | http://www.example.com/video/detail?id=001 | /video/detail | 001
+ 2016-08-26 12:02:01 | http://www.example.com/video#ref           | /video        |
+ 2016-08-26 12:02:01 | http://www.example.com/book/detail?id=002  | /book/detail  | 002
+(3 行)
+
+# 現在の日付けを取得
+SELECT current_date;
+
+ current_date
+--------------
+ 2025-09-16
+(1 行)
+
+SELECT
+	current_date,
+	CAST('2025-09-16' AS date) AS dt,
+	CAST('2025-09-16' AS timestamp) AS stamp
+;
+
+ current_date |     dt     |        stamp
+--------------+------------+---------------------
+ 2025-09-16   | 2025-09-16 | 2025-09-16 00:00:00
+(1 行)
+
+-- current_dateから取り出せるか
+SELECT current_date,
+	EXTRACT(YEAR FROM stamp) AS year
+FROM (SELECT current_date AS stamp)AS t;
+
+ current_date | year
+--------------+------
+ 2025-09-16   | 2025
+(1 行)
+
+# これだけカンタンにしてもいい
+SELECT current_date,
+	EXTRACT(YEAR FROM current_date) AS year;
+
+ current_date | year
+--------------+------
+ 2025-09-16   | 2025
+(1 行)
+
+SELECT current_date,
+	EXTRACT(YEAR FROM current_date) AS year,
+	EXTRACT(MONTH FROM current_date) AS month,
+	EXTRACT(DAY FROM current_date) AS day;
+
+ current_date | year | month | day
+--------------+------+-------+-----
+ 2025-09-16   | 2025 |     9 |  16
+(1 行)
