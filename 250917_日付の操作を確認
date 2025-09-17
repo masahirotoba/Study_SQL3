@@ -1,0 +1,61 @@
+ user_id |   register_stamp    | birth_date
+---------+---------------------+------------
+ U001    | 2016-02-28 10:00:00 | 2000-02-29
+ U002    | 2016-02-29 10:00:00 | 2000-02-29
+ U003    | 2016-03-01 10:00:00 | 2000-02-29
+(3 行)
+
+# タイムスタンプ型に変換する
+SELECT
+	user_id,
+	register_stamp::timestamp AS tima_stamp
+FROM mst_users_with_birthday;
+
+ user_id |     tima_stamp
+---------+---------------------
+ U001    | 2016-02-28 10:00:00
+ U002    | 2016-02-29 10:00:00
+ U003    | 2016-03-01 10:00:00
+(3 行)
+
+# 差を求める
+SELECT
+    user_id,
+    register_stamp::timestamp AS timestamp,
+    register_stamp::timestamp + '1 hour'::interval AS after_1_hour,
+    register_stamp::timestamp - '30 minutes'::interval AS before_30_minutes
+FROM mst_users_with_birthday;
+
+ user_id |      timestamp      |    after_1_hour     |  before_30_minutes
+---------+---------------------+---------------------+---------------------
+ U001    | 2016-02-28 10:00:00 | 2016-02-28 11:00:00 | 2016-02-28 09:30:00
+ U002    | 2016-02-29 10:00:00 | 2016-02-29 11:00:00 | 2016-02-29 09:30:00
+ U003    | 2016-03-01 10:00:00 | 2016-03-01 11:00:00 | 2016-03-01 09:30:00
+(3 行)
+
+# 出力する自国の形式を指定するには（TO_CHARで指定）
+SELECT
+    user_id,
+    TO_CHAR(register_stamp::timestamp, 'YYYY-MM-DD') AS timestamp
+FROM mst_users_with_birthday;
+
+ user_id | timestamp
+---------+------------
+ U001    | 2016-02-28
+ U002    | 2016-02-29
+ U003    | 2016-03-01
+(3 行)
+
+# 差分を計算する
+SELECT
+    user_id,
+    register_stamp::date - birth_date::date AS diff_days
+FROM mst_users_with_birthday;
+
+user_id | diff_days
+---------+-----------
+ U001    |      5843
+ U002    |      5844
+ U003    |      5845
+(3 行)
+
