@@ -1,0 +1,230 @@
+shop2=# SELECT * FROM mst_user_location;
+ user_id | pref_name | city_name
+---------+-----------+-----------
+ U001    | 東京都    | 千代田区
+ U002    | 東京都    | 渋谷区
+ U003    | 千葉県    | 八千代区
+(3 行)
+
+# 文字列を連結する
+SELECT
+	user_id,
+	pref_name,
+	city_name,
+	CONCAT(pref_name, city_name) AS pref_city
+FROM mst_user_location;
+
+shop2-# FROM mst_user_location;
+ user_id | pref_name | city_name |   pref_city
+---------+-----------+-----------+----------------
+ U001    | 東京都    | 千代田区  | 東京都千代田区
+ U002    | 東京都    | 渋谷区    | 東京都渋谷区
+ U003    | 千葉県    | 八千代区  | 千葉県八千代区
+(3 行)
+
+shop2=# SELECT * FROM quarterly_sales;
+ year |  q1   |  q2   |  q3   |  q4
+------+-------+-------+-------+-------
+ 2015 | 82000 | 83000 | 78000 | 83000
+ 2016 | 85000 | 85000 | 80000 | 81000
+ 2017 | 92000 | 81000 |       |
+(3 行)
+
+# 差分を求める
+SELECT
+	q1,
+	q2,
+	q1 - q2 AS diff_q2_q1,
+	CASE
+		WHEN q1 < q2 THEN '+'
+		WHEN q1 > q2 THEN '-'
+		ELSE '-'
+	END AS judge_q1_q2
+FROM quarterly_sales;
+
+shop2-# FROM quarterly_sales;
+  q1   |  q2   | diff_q2_q1 | judge_q1_q2
+-------+-------+------------+-------------
+ 82000 | 83000 |      -1000 | +
+ 85000 | 85000 |          0 | -
+ 92000 | 81000 |      11000 | -
+(3 行)
+
+# これはエラーになる
+集約関数（MAX、SUM、COUNT等）を使う場合、SELECT句にある通常の列はGROUP BYで指定する必要がある
+SELECT
+	year,
+	MAX(q1) AS greatest_sales
+FROM quarterly_sales;
+
+SELECT
+	year,
+	MAX(q1) AS greatest_sales
+FROM quarterly_sales
+GROUP BY year
+;
+
+shop2=# SELECT
+shop2-#         year,
+shop2-#         MAX(q1) AS greatest_sales
+shop2-# FROM quarterly_sales
+shop2-# GROUP BY year
+shop2-# ;
+
+year | greatest_sales
+------+----------------
+ 2017 |          92000
+ 2016 |          85000
+ 2015 |          82000
+(3 行)
+
+
+# GREATEST関数の使い方（左から右に比較する）
+GREATEST関数は行レベルでの比較なので、GROUP BYなしで各行の最大値を求められます。
+これが通常のMAX関数（列レベルの集約）との大きな違いです。
+
+shop2=# SELECT GREATEST(82000, 83000, 78000, 83000);
+ greatest
+----------
+    83000
+(1 行)
+
+# MAX関数の横バージョンだと思えばいい
+SELECT
+	year,
+	GREATEST (q1, q2, q3, q4) AS greatest_sales
+FROM quarterly_sales;
+
+ year | greatest_sales
+------+----------------
+ 2015 |          83000
+ 2016 |          85000
+ 2017 |          92000
+(3 行)
+
+SELECT
+	year,
+	(q1+q2+q3+q4)/4 AS avg_sales
+FROM quarterly_sales;
+
+ year | avg_sales
+------+-----------
+ 2015 |     81500
+ 2016 |     82750
+ 2017 |
+(3 行)
+
+# COALESCE関数でNULLに0を入れる
+SELECT
+	year,
+	(COALESCE(q1, 0))/4 AS avg_sales
+FROM quarterly_sales;
+
+# 2つの値の比率を計算
+     dt     | ad_id | impressions | clicks
+------------+-------+-------------+--------
+ 2017-04-01 | 001   |      100000 |   3000
+ 2017-04-01 | 002   |      120000 |   1200
+ 2017-04-01 | 003   |      500000 |  10000
+ 2017-04-02 | 001   |           0 |      0
+ 2017-04-02 | 002   |      130000 |   1400
+ 2017-04-02 | 003   |      620000 |  15000
+(6 行)
+
+shop2=# SELECT
+shop2-#         dt,
+shop2-#         ad_id,
+shop2-#         clicks / impressions
+shop2-# FROM advertising_stats;
+ERROR:  0 による除算が行われました
+
+# 0で割り算はできないので、CASE式で除外する
+SELECT
+	dt,
+	ad_id,
+	CASE
+		WHEN impressions=0 THEN NULL
+		ELSE clicks / impressions
+	END
+FROM advertising_stats;
+
+shop2-# FROM advertising_stats;
+     dt     | ad_id | case
+------------+-------+------
+ 2017-04-01 | 001   |    0
+ 2017-04-01 | 002   |    0
+ 2017-04-01 | 003   |    0
+ 2017-04-02 | 001   |
+ 2017-04-02 | 002   |    0
+ 2017-04-02 | 003   |    0
+(6 行)
+
+# PostgreSQLでは整数同士を割ると、結果も整数になり小数点以下が切り捨てられてしまう
+# どちらかをFLOAT型にキャストする
+     dt     | ad_id |         case
+------------+-------+----------------------
+ 2017-04-01 | 001   |                 0.03
+ 2017-04-01 | 002   |                 0.01
+ 2017-04-01 | 003   |                 0.02
+ 2017-04-02 | 001   |
+ 2017-04-02 | 002   | 0.010769230769230769
+ 2017-04-02 | 003   | 0.024193548387096774
+(6 行)
+
+# 1.0を掛けてもいい
+SELECT
+	dt,
+	ad_id,
+	CASE
+		WHEN impressions=0 THEN NULL
+		ELSE 1.0 * clicks / impressions
+	END
+FROM advertising_stats;
+
+shop2-# FROM advertising_stats;
+     dt     | ad_id |          case
+------------+-------+------------------------
+ 2017-04-01 | 001   | 0.03000000000000000000
+ 2017-04-01 | 002   | 0.01000000000000000000
+ 2017-04-01 | 003   | 0.02000000000000000000
+ 2017-04-02 | 001   |
+ 2017-04-02 | 002   | 0.01076923076923076923
+ 2017-04-02 | 003   | 0.02419354838709677419
+(6 行)
+
+# ROUND関数で丸める
+SELECT
+	dt,
+	ad_id,
+	CASE
+		WHEN impressions=0 THEN NULL
+		ELSE ROUND(1.0 * clicks / impressions, 2)
+	END
+FROM advertising_stats;
+
+     dt     | ad_id | round
+------------+-------+-------
+ 2017-04-01 | 001   |  0.03
+ 2017-04-01 | 002   |  0.01
+ 2017-04-01 | 003   |  0.02
+ 2017-04-02 | 001   |
+ 2017-04-02 | 002   |  0.01
+ 2017-04-02 | 003   |  0.02
+(6 行)
+
+# 2つの値の距離を計算する
+shop2=# SELECT * FROM location_1d;
+ x1 | x2
+----+----
+  5 | 10
+ 10 |  5
+ -2 |  4
+  3 |  3
+  0 |  1
+(5 行)
+
+SELECT
+	abs(x1-x2),
+	power(x1-x2, 2),
+	sqrt(power(x1-x2, 2))
+FROM location_1d;
