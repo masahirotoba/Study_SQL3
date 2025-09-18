@@ -1,0 +1,208 @@
+# UNIONで2つを結合する
+ただしテーブル構造が異なるのでごっちゃに
+SELECT * FROM app1_mst_users
+UNION ALL
+SELECT * FROM app2_mst_users;
+
+ user_id |  name  |       email
+---------+--------+--------------------
+ U001    | Sato   | sato@example.com
+ U002    | Suzuki | suzuki@example.com
+ U001    | Ito    | 080-xxxx-xxxx
+ U002    | Tanaka | 070-xxxx-xxxx
+(4 行)
+
+# きちんと列名を指定すること
+-- 明示的にNULLで列を揃える
+SELECT user_id, name, email, NULL as phone FROM app1_mst_users
+UNION ALL  
+SELECT user_id, name, NULL as email, phone FROM app2_mst_users;
+
+ user_id |  name  |       email        |     phone
+---------+--------+--------------------+---------------
+ U001    | Sato   | sato@example.com   |
+ U002    | Suzuki | suzuki@example.com |
+ U001    | Ito    |                    | 080-xxxx-xxxx
+ U002    | Tanaka |                    | 070-xxxx-xxxx
+(4 行)
+
+# JOINの書き方を練習する
+shop2=# SELECT * FROM mst_categories;
+ category_id | name
+-------------+------
+           1 | dvd
+           2 | cd
+           3 | book
+(3 行)
+
+
+shop2=# SELECT * FROM category_sales;
+ category_id | sales
+-------------+--------
+           1 | 850000
+           2 | 500000
+(2 行)
+
+
+shop2=# SELECT * FROM product_sale_ranking;
+ category_id | rank | product_id | sales
+-------------+------+------------+-------
+           1 |    1 | D001       | 50000
+           1 |    2 | D002       | 20000
+           1 |    3 | D003       | 10000
+           2 |    1 | C001       | 30000
+           2 |    2 | C002       | 20000
+           2 |    3 | C003       | 10000
+(6 行)
+
+# INNER JOINなので、どう書こうとも同じ
+SELECT
+	m.name,
+	c.sales
+FROM
+	mst_categories AS m INNER JOIN category_sales AS c
+ON
+	m.category_id = c.category_id;
+
+# LEFT OUTER JOIN
+→左側のテーブル（mst_categories）の全ての行が結果に含まれるように
+SELECT
+	m.name,
+	c.sales
+FROM
+	mst_categories AS m LEFT OUTER JOIN category_sales AS c
+ON
+	m.category_id = c.category_id;
+
+ name | sales
+------+--------
+ dvd  | 850000
+ cd   | 500000
+ book |
+(3 行)
+
+# 結合する
+SELECT
+	p.category_id,
+	m.name,
+	c.sales,
+	p.product_id
+FROM
+	product_sale_ranking AS p
+LEFT OUTER JOIN
+	mst_categories AS m
+ON
+	p.category_id = m.category_id
+LEFT OUTER JOIN
+	category_sales AS c
+ON
+	c.category_id = p.category_id
+;
+
+ category_id | name | sales  | product_id
+-------------+------+--------+------------
+           1 | dvd  | 850000 | D003
+           1 | dvd  | 850000 | D002
+           1 | dvd  | 850000 | D001
+           2 | cd   | 500000 | C003
+           2 | cd   | 500000 | C002
+           2 | cd   | 500000 | C001
+(6 行)
+
+# マスタデータ同士を結合する
+→左側を優先して残すことになるから
+SELECT
+	m.category_id,
+	m.name,
+	c.sales
+FROM
+	mst_categories AS m
+LEFT OUTER JOIN
+	category_sales AS c
+ON m.category_id = c.category_id;
+
+# 当てはまるモノが複数マッチすると、行が爆発的に増えるので注意
+SELECT
+	m.category_id,
+	m.name,
+	c.sales,
+	p.product_id
+FROM
+	mst_categories AS m
+LEFT JOIN
+	category_sales AS c
+ON
+	m.category_id = c.category_id
+LEFT OUTER JOIN
+	product_sale_ranking AS p
+ON m.category_id = p.category_id;
+
+ category_id | name | sales  | product_id
+-------------+------+--------+------------
+           1 | dvd  | 850000 | D001
+           1 | dvd  | 850000 | D002
+           1 | dvd  | 850000 | D003
+           2 | cd   | 500000 | C001
+           2 | cd   | 500000 | C002
+           2 | cd   | 500000 | C003
+           3 | book |        |
+(7 行)
+
+# 結合キーが重複しているかをチェック
+SELECT
+	category_id,
+	COUNT(*) AS count,
+	COUNT(*) > 1 AS duplicate
+FROM
+	product_sale_ranking
+GROUP BY
+	category_id
+ORDER BY
+	category_id
+;
+
+# INNER JOINでも複数に増える
+SELECT
+	c.category_id,
+	p.product_id
+FROM
+	category_sales AS c
+JOIN
+	product_sale_ranking AS p
+ON
+	c.category_id = p.category_id;
+
+ category_id | product_id
+-------------+------------
+           1 | D003
+           1 | D002
+           1 | D001
+           2 | C003
+           2 | C002
+           2 | C001
+(6 行)
+
+# LEFTに変えてみる
+→結果は同じ
+SELECT
+	c.category_id,
+	p.product_id
+FROM
+	category_sales AS c
+LEFT JOIN
+	product_sale_ranking AS p
+ON
+	c.category_id = p.category_id;
+
+ category_id | product_id
+-------------+------------
+           1 | D003
+           1 | D002
+           1 | D001
+           2 | C003
+           2 | C002
+           2 | C001
+(6 行)
+
+OUTETRはあくまで当てはまらないモノを残すだけで、本質は「関連する全ての組み合わせを表示する」だけ
+
