@@ -1,0 +1,115 @@
+# ランク付け（順序）を扱う
+ product_id | category | score
+------------+----------+-------
+ A001       | action   |    94
+ A002       | action   |    81
+ A003       | action   |    78
+ A004       | action   |    64
+ D001       | drama    |    90
+ D002       | drama    |    82
+ D003       | drama    |    78
+ D004       | drama    |    58
+(8 行)
+
+# まずは何も使わない
+→テーブル全体に対して1から順番に番号を付けられる
+
+SELECT
+	ROW_NUMBER() OVER()
+FROM popular_products;
+
+ row_number
+------------
+          1
+          2
+          3
+          4
+          5
+          6
+          7
+          8
+(8 行)
+
+# これはカテゴリーごとの順序
+SELECT
+	ROW_NUMBER() OVER(
+		PARTITION BY category
+	)
+FROM popular_products;
+
+ product_id | category | score | row_number
+------------+----------+-------+------------
+ A001       | action   |    94 |          1
+ A002       | action   |    81 |          2
+ A003       | action   |    78 |          3
+ A004       | action   |    64 |          4
+ D001       | drama    |    90 |          1
+ D002       | drama    |    82 |          2
+ D003       | drama    |    78 |          3
+ D004       | drama    |    58 |          4
+(8 行)
+
+
+# 並び替える
+SELECT
+	*,
+	ROW_NUMBER() OVER(
+		PARTITION BY category
+		ORDER BY score
+	)
+FROM popular_products;
+
+# 1つ前の行を取得する
+SELECT
+	*,
+	LAG(product_id) OVER()
+FROM popular_products;
+
+ product_id | category | score | lag
+------------+----------+-------+------
+ A001       | action   |    94 |
+ A002       | action   |    81 | A001
+ A003       | action   |    78 | A002
+ A004       | action   |    64 | A003
+ D001       | drama    |    90 | A004
+ D002       | drama    |    82 | D001
+ D003       | drama    |    78 | D002
+ D004       | drama    |    58 | D003
+(8 行)
+
+# スコアの上位2つを取得
+→下から2番目になってしまった
+SELECT
+	*
+FROM(
+	SELECT
+		*,
+		ROW_NUMBER() OVER(
+			PARTITION BY category
+			ORDER BY score
+		)AS rank_num
+	FROM popular_products
+)t
+WHERE rank_num >= 2;
+
+# これならできる
+SELECT
+	*
+FROM(
+	SELECT
+		*,
+		ROW_NUMBER() OVER(
+			PARTITION BY category
+			ORDER BY score DESC
+		)AS rank_num
+	FROM popular_products
+)t
+WHERE rank_num <= 2;
+
+ product_id | category | score | rank_num
+------------+----------+-------+----------
+ A001       | action   |    94 |        1
+ A002       | action   |    81 |        2
+ D001       | drama    |    90 |        1
+ D002       | drama    |    82 |        2
+(4 行)
