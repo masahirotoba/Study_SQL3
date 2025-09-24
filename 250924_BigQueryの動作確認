@@ -1,0 +1,13 @@
+# 指定された期間のユーザー数を抽出
+SELECT
+  event_date,
+  COUNT(DISTINCT user_pseudo_id) AS users
+FROM
+  `sample-project-○○.analytics_○○.events_*`
+WHERE
+  _TABLE_SUFFIX BETWEEN "20250923" AND "20250925"
+GROUP BY
+  event_date
+ORDER BY
+  event_date
+;
