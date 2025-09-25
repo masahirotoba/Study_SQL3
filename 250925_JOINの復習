@@ -1,0 +1,157 @@
+WHERE = 生データのフィルタ
+HAVING = 集計後のフィルタ
+
+# 一意かどうかを確認する
+SELECT
+	customer_id,
+	COUNT(*) AS count
+FROM
+	access_log
+GROUP BY
+	customer_id
+HAVING
+	COUNT(*) > 1
+;
+
+ customer_id | count
+-------------+-------
+      104097 |     2
+(1 行)
+
+SELECT
+	customer_id,
+	COUNT(*) AS count
+FROM
+	customers
+GROUP BY
+	customer_id
+HAVING
+	COUNT(*) > 1
+;
+
+ customer_id | count
+-------------+-------
+(0 行)
+
+# まずは重複をチェック
+postgres=#
+postgres=# -- accesslogの重複を確認
+postgres=# SELECT
+postgres-#      customer_id,
+postgres-#      COUNT(*) AS count
+postgres-# FROM
+postgres-#      access_log
+postgres-# GROUP BY
+postgres-#      customer_id
+postgres-# HAVING
+postgres-#      COUNT(*) > 1
+postgres-# ;
+ customer_id | count
+-------------+-------
+      104097 |     2
+(1 行)
+
+
+postgres=#
+postgres=# -- customersの重複を確認
+postgres=# SELECT
+postgres-#      customer_id,
+postgres-#      COUNT(*) AS count
+postgres-# FROM
+postgres-#      customers
+postgres-# GROUP BY
+postgres-#      customer_id
+postgres-# HAVING
+postgres-#      COUNT(*) > 1
+postgres-# ;
+ customer_id | count
+-------------+-------
+(0 行)
+
+# 重複をチェックする
+-- accesslogの重複を確認
+SELECT
+	customer_id,
+	COUNT(*) AS count
+FROM
+	access_log
+GROUP BY
+	customer_id
+HAVING
+	COUNT(*) > 1
+;
+
+-- customersの重複を確認
+SELECT
+	customer_id,
+	COUNT(*) AS count
+FROM
+	customers
+GROUP BY
+	customer_id
+HAVING
+	COUNT(*) > 1
+;
+
+# 実際にJOINをする
+SELECT
+	*
+FROM
+	access_log
+LEFT JOIN
+	customers
+ON
+	access_log.customer_id = customers.customer_id
+;
+
+まあこうなる
+    request_time     | request_method | request_path  | customer_id | search_hit |       referer        | customer_id | customer_name | customer_age | customer_birthday | customer_gender | customer_location
+---------------------+----------------+---------------+-------------+------------+----------------------+-------------+---------------+--------------+-------------------+-----------------+-------------------
+ 2014-12-29 03:34:01 | GET            | /             |       54115 |            | https://google.co.jp |       54115 | 森一郎        |           26 | 1989-05-16        | M               | 東京都
+ 2014-12-29 03:34:05 | GET            | /search       |      104097 |        154 | /                    |      104097 | 丸山冴子      |           19 | 1996-08-01        | F               | 東京都
+ 2014-12-29 03:34:34 | GET            | /             |         324 |            | https://google.co.jp |         324 | 陣内太郎      |           37 | 1978-11-21        | M               | 北海道
+ 2014-12-29 03:34:40 | GET            | /             |      104097 |            | /search              |      104097 | 丸山冴子      |           19 | 1996-08-01        | F               | 東京都
+ 2014-12-29 03:35:05 | GET            | /items/531415 |       93292 |            | /search              |       93292 | 綾小路涼      |           41 | 1974-02-21        | M               | 鳥取県
+(5 行)
+
+-- 重複をチェック
+SELECT
+	request_path,
+	COUNT(*) AS count
+FROM
+	web_pages
+GROUP BY
+	request_path
+;
+
+SELECT
+	request_path,
+	COUNT(*) AS count
+FROM
+	access_log
+GROUP BY
+	request_path
+;
+
+# どのページを見ているかを分析
+SELECT
+	a.customer_id,
+	w.page_category,
+	w.page_name
+FROM
+	access_log AS a
+LEFT JOIN
+	web_pages AS w
+ON
+	a.request_path = w.request_path
+;
+ 
+ customer_id | page_category |  page_name
+-------------+---------------+-------------
+      104097 | top           | top
+         324 | top           | top
+       54115 | top           | top
+      104097 | search        | item_search
+       93292 |               |
+(5 行)
+
