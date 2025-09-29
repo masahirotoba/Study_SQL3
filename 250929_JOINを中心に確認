@@ -1,0 +1,67 @@
+# 都道府県マスタと紐づけ
+SELECT
+	a.request_time
+	, a.request_path
+	, c.prefecture
+FROM
+	access_log AS a
+LEFT JOIN
+	customer_locations AS c
+ON
+	a.customer_id = c.customer_id
+;
+
+    request_time     | request_path  | prefecture
+---------------------+---------------+------------
+ 2014-12-29 03:34:01 | /             | 沖縄県
+ 2014-12-29 03:35:05 | /items/531415 | 島根県
+ 2014-12-29 03:34:40 | /             | 東京都
+ 2014-12-29 03:34:05 | /search       | 東京都
+ 2014-12-29 03:34:34 | /             |
+(5 行)
+
+# 並び替えた方がわかりやすい
+SELECT
+	a.request_time
+	, a.request_path
+	, c.prefecture
+FROM
+	access_log AS a
+LEFT JOIN
+	customer_locations AS c
+ON
+	a.customer_id = c.customer_id
+ORDER BY
+	a.request_time
+;
+
+    request_time     | request_path  | prefecture
+---------------------+---------------+------------
+ 2014-12-29 03:34:01 | /             | 沖縄県
+ 2014-12-29 03:34:05 | /search       | 東京都
+ 2014-12-29 03:34:34 | /             |
+ 2014-12-29 03:34:40 | /             | 東京都
+ 2014-12-29 03:35:05 | /items/531415 | 島根県
+(5 行)
+
+# 居住地域ごとのアクセス数を集計
+SELECT
+	c.prefecture
+	, COUNT(a.*)
+FROM
+	access_log AS a
+LEFT JOIN
+	customer_locations AS c
+ON
+	a.customer_id = c.customer_id
+GROUP BY
+	c.prefecture
+;
+
+ prefecture | count
+------------+-------
+            |     1
+ 島根県     |     1
+ 沖縄県     |     1
+ 東京都     |     2
+(4 行)
